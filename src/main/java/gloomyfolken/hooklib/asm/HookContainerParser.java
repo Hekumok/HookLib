@@ -117,7 +117,20 @@ public class HookContainerParser {
         }
 
         if (annotationValues.containsKey("at")) {
-            builder.setAnchorForInject((HashMap<String, Object>) annotationValues.get("at"));
+            HashMap<String, Object> anchor = (HashMap<String, Object>) annotationValues.get("at");
+            InjectionPoint point = InjectionPoint.valueOf((String) anchor.get("point"));
+            Shift shift = Shift.valueOfNullable((String) anchor.get("shift"));
+
+            if(point.equals(InjectionPoint.VAR_ASSIGNMENT) && (int) anchor.get("targetVar") < 0) {
+                invalidHook("Hook method with anchor point = VAR_ASSIGNMENT must have targetVar >= 0.");
+                return;
+            }
+
+            if(point.equals(InjectionPoint.VAR_ASSIGNMENT) && !shift.equals(Shift.AFTER)) {
+                invalidHook("Hook method with anchor point = VAR_ASSIGNMENT can use only Shift.AFTER. Ignore current Shift value.");
+            }
+
+            builder.setAnchorForInject(anchor);
         }
 
         if (annotationValues.containsKey("returnType")) {

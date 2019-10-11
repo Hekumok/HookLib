@@ -2,14 +2,14 @@ package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.minecraft.HookLibPlugin;
 import gloomyfolken.hooklib.minecraft.MinecraftClassTransformer;
+import gloomyfolken.hooklib.utils.OpcodesHelper;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
 
-import static gloomyfolken.hooklib.asm.InjectionPoint.HEAD;
-import static gloomyfolken.hooklib.asm.InjectionPoint.METHOD_CALL;
+import static gloomyfolken.hooklib.asm.InjectionPoint.*;
 
 /**
  * Класс, непосредственно вставляющий хук в метод.
@@ -90,6 +90,14 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
             else
                 super.visitMethodInsn(opcode, owner, name, desc, itf);
 
+        }
+
+        public void visitVarInsn(int opcode, int var) {
+            super.visitVarInsn(opcode, var);
+
+            if (hook.getAnchorPoint() == VAR_ASSIGNMENT && OpcodesHelper.isVarStore(opcode) && var == hook.getAnchorTargetVar()) {
+                visitOrderedHook();
+            }
         }
 
         protected void onMethodEnter() {
