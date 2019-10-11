@@ -4,12 +4,14 @@ import gloomyfolken.hooklib.asm.*;
 import gloomyfolken.hooklib.asm.Hook.ReturnValue;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityHopper;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.ForgeHooks;
 
 public class TestHooks {
@@ -21,6 +23,17 @@ public class TestHooks {
     @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "getSlotsForFace"), returnCondition = ReturnCondition.ON_TRUE, booleanReturnConstant = true)
     public static boolean isInventoryFull(TileEntityHopper tile, IInventory inventoryIn, EnumFacing side) {
         return ((ISidedInventory) inventoryIn).getSlotsForFace(side) == null;
+    }
+
+    /**
+     * Цель: наносить постоянный урон (2), не зависящий от высоты падения, при падении с высоты выше 3 блоков
+     * P.S.: для примера не будем учитывать эффект JUMP_BOOST
+     */
+    @Hook(at = @At(point = InjectionPoint.VAR_ASSIGNMENT, targetVar = 6, ordinal = 0), setLocalVar = 6)
+    public static int fall(EntityLivingBase entity, float distance, float damageMultiplier, @Hook.LocalVariable(6) int var) {
+         System.out.println("Real fall damage is  " + var);
+
+         return (distance > 3) ? MathHelper.ceil(2 * damageMultiplier) : 0;
     }
 
     /**
@@ -64,4 +77,6 @@ public class TestHooks {
         int k = ((oldValue >> 4) & 15) / 2;
         return j << 20 | k << 4;
     }
+
+
 }

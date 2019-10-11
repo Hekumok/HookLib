@@ -21,6 +21,11 @@ public @interface At {
     public String target() default "";
 
     /**
+     * Номер локальной переменной для перехвата
+     */
+    public int targetVar() default -1;
+
+    /**
      * Какая по счету операция. -1, если все
      */
     public int ordinal() default -1;

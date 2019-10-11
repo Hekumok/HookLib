@@ -2,6 +2,7 @@ package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.asm.HookInjectorFactory.MethodEnter;
 import gloomyfolken.hooklib.asm.HookInjectorFactory.MethodExit;
+import gloomyfolken.hooklib.utils.OpcodesHelper;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -57,6 +58,8 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     // может быть без возвращаемого типа
     private String returnMethodDescription;
 
+    private int localVarIdForSetting = -1;
+
     private boolean createMethod;
     private boolean isMandatory;
 
@@ -66,6 +69,10 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
     public String getAnchorTarget() {
         return (String) anchor.get("target");
+    }
+
+    public int getAnchorTargetVar() {
+        return (int) anchor.get("targetVar");
     }
 
     public Shift getShift() {
@@ -147,6 +154,10 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         int hookResultLocalId = -1;
         if (hasHookMethod()) {
             injectInvokeStatic(inj, returnLocalId, hookMethodName, hookMethodDescription);
+
+            if (localVarIdForSetting > -1) {
+                inj.visitVarInsn(OpcodesHelper.getVarStoreOpcode(hookMethodReturnType), localVarIdForSetting);
+            }
 
             if (returnValue == ReturnValue.HOOK_RETURN_VALUE || returnCondition.requiresCondition) {
                 hookResultLocalId = inj.newLocal(hookMethodReturnType);
@@ -433,6 +444,11 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
          */
         public Builder setTargetMethodReturnType(String returnType) {
             return setTargetMethodReturnType(TypeHelper.getType(returnType));
+        }
+
+        public Builder setLocalVarIdForSetting(int varId) {
+            AsmHook.this.localVarIdForSetting = varId;
+            return this;
         }
 
         /**

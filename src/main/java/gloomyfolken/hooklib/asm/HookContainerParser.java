@@ -117,11 +117,36 @@ public class HookContainerParser {
         }
 
         if (annotationValues.containsKey("at")) {
-            builder.setAnchorForInject((HashMap<String, Object>) annotationValues.get("at"));
+            HashMap<String, Object> anchor = (HashMap<String, Object>) annotationValues.get("at");
+            InjectionPoint point = InjectionPoint.valueOf((String) anchor.get("point"));
+            Shift shift = Shift.valueOfNullable((String) anchor.get("shift"));
+
+            if(point.equals(InjectionPoint.VAR_ASSIGNMENT) && (int) anchor.get("targetVar") < 0) {
+                invalidHook("Hook method with anchor point = VAR_ASSIGNMENT must have targetVar >= 0.");
+                return;
+            }
+
+            if(point.equals(InjectionPoint.VAR_ASSIGNMENT) && !shift.equals(Shift.AFTER)) {
+                invalidHook("Hook method with anchor point = VAR_ASSIGNMENT can use only Shift.AFTER. Ignore current Shift value.");
+            }
+
+            builder.setAnchorForInject(anchor);
         }
 
         if (annotationValues.containsKey("returnType")) {
             builder.setTargetMethodReturnType((String) annotationValues.get("returnType"));
+        }
+
+        int localVarIdForSetting = -1;
+        if (annotationValues.containsKey("setLocalVar")) {
+            localVarIdForSetting = (int) annotationValues.get("setLocalVar");
+
+            if(localVarIdForSetting > -1 && methodType.getReturnType() == Type.VOID_TYPE) {
+                invalidHook("Hook method must return non-void value if setLocalVar parameter is set.");
+                return;
+            }
+
+            builder.setLocalVarIdForSetting(localVarIdForSetting);
         }
 
         ReturnCondition returnCondition = ReturnCondition.NEVER;
@@ -131,6 +156,11 @@ public class HookContainerParser {
         }
 
         if (returnCondition != ReturnCondition.NEVER) {
+            if(localVarIdForSetting > -1) {
+                invalidHook("Parameter setLocalVar should be used with ReturnCondition.NEVER.");
+                return;
+            }
+
             Object primitiveConstant = getPrimitiveConstant();
             if (primitiveConstant != null) {
                 builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.PRIMITIVE_CONSTANT);
