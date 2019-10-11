@@ -147,7 +147,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         int returnLocalId = -1;
         if (hasReturnValueParameter) {
             returnLocalId = inj.newLocal(targetMethodReturnType);
-            inj.visitVarInsn(targetMethodReturnType.getOpcode(54), returnLocalId); //storeLocal
+            inj.visitVarInsn(OpcodesHelper.getVarStoreOpcode(targetMethodReturnType), returnLocalId);
         }
 
         // вызываем хук-метод
@@ -161,7 +161,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
             if (returnValue == ReturnValue.HOOK_RETURN_VALUE || returnCondition.requiresCondition) {
                 hookResultLocalId = inj.newLocal(hookMethodReturnType);
-                inj.visitVarInsn(hookMethodReturnType.getOpcode(54), hookResultLocalId); //storeLocal
+                inj.visitVarInsn(OpcodesHelper.getVarStoreOpcode(hookMethodReturnType), hookResultLocalId);
             }
         }
 
@@ -171,7 +171,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
             // вставляем GOTO-переход к label'у после вызова return
             if (returnCondition != ReturnCondition.ALWAYS) {
-                inj.visitVarInsn(hookMethodReturnType.getOpcode(21), hookResultLocalId); //loadLocal
+                inj.visitVarInsn(OpcodesHelper.getVarLoadOpcode(hookMethodReturnType), hookResultLocalId);
                 if (returnCondition == ReturnCondition.ON_TRUE) {
                     inj.visitJumpInsn(IFEQ, label);
                 } else if (returnCondition == ReturnCondition.ON_NULL) {
@@ -187,7 +187,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             } else if (returnValue == ReturnValue.PRIMITIVE_CONSTANT) {
                 inj.visitLdcInsn(primitiveConstant);
             } else if (returnValue == ReturnValue.HOOK_RETURN_VALUE) {
-                inj.visitVarInsn(hookMethodReturnType.getOpcode(21), hookResultLocalId); //loadLocal
+                inj.visitVarInsn(OpcodesHelper.getVarLoadOpcode(hookMethodReturnType), hookResultLocalId);
             } else if (returnValue == ReturnValue.ANOTHER_METHOD_RETURN_VALUE) {
                 String returnMethodDescription = this.returnMethodDescription;
                 // если не был определён заранее нужный возвращаемый тип, то добавляем его к описанию
@@ -211,20 +211,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     }
 
     private void injectLoad(HookInjectorMethodVisitor inj, Type parameterType, int variableId) {
-        int opcode;
-        if (parameterType == INT_TYPE || parameterType == BYTE_TYPE || parameterType == CHAR_TYPE ||
-                parameterType == BOOLEAN_TYPE || parameterType == SHORT_TYPE) {
-            opcode = ILOAD;
-        } else if (parameterType == LONG_TYPE) {
-            opcode = LLOAD;
-        } else if (parameterType == FLOAT_TYPE) {
-            opcode = FLOAD;
-        } else if (parameterType == DOUBLE_TYPE) {
-            opcode = DLOAD;
-        } else {
-            opcode = ALOAD;
-        }
-        inj.visitVarInsn(opcode, variableId);
+        inj.visitVarInsn(OpcodesHelper.getVarLoadOpcode(parameterType), variableId);
     }
 
     private void injectSuperCall(HookInjectorMethodVisitor inj, ClassMetadataReader.MethodReference method) {
@@ -268,21 +255,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     }
 
     private void injectReturn(HookInjectorMethodVisitor inj, Type targetMethodReturnType) {
-        if (targetMethodReturnType == INT_TYPE || targetMethodReturnType == SHORT_TYPE ||
-                targetMethodReturnType == BOOLEAN_TYPE || targetMethodReturnType == BYTE_TYPE
-                || targetMethodReturnType == CHAR_TYPE) {
-            inj.visitInsn(IRETURN);
-        } else if (targetMethodReturnType == LONG_TYPE) {
-            inj.visitInsn(LRETURN);
-        } else if (targetMethodReturnType == FLOAT_TYPE) {
-            inj.visitInsn(FRETURN);
-        } else if (targetMethodReturnType == DOUBLE_TYPE) {
-            inj.visitInsn(DRETURN);
-        } else if (targetMethodReturnType == VOID_TYPE) {
-            inj.visitInsn(RETURN);
-        } else {
-            inj.visitInsn(ARETURN);
-        }
+        inj.visitInsn(OpcodesHelper.getReturnOpcode(targetMethodReturnType));
     }
 
     private void injectInvokeStatic(HookInjectorMethodVisitor inj, int returnLocalId, String name, String desc) {
