@@ -137,6 +137,18 @@ public class HookContainerParser {
             builder.setTargetMethodReturnType((String) annotationValues.get("returnType"));
         }
 
+        int localVarIdForSetting = -1;
+        if (annotationValues.containsKey("setLocalVar")) {
+            localVarIdForSetting = (int) annotationValues.get("setLocalVar");
+
+            if(localVarIdForSetting > -1 && methodType.getReturnType() == Type.VOID_TYPE) {
+                invalidHook("Hook method must return non-void value if setLocalVar parameter is set.");
+                return;
+            }
+
+            builder.setLocalVarIdForSetting(localVarIdForSetting);
+        }
+
         ReturnCondition returnCondition = ReturnCondition.NEVER;
         if (annotationValues.containsKey("returnCondition")) {
             returnCondition = ReturnCondition.valueOf((String) annotationValues.get("returnCondition"));
@@ -144,6 +156,11 @@ public class HookContainerParser {
         }
 
         if (returnCondition != ReturnCondition.NEVER) {
+            if(localVarIdForSetting > -1) {
+                invalidHook("Parameter setLocalVar should be used with ReturnCondition.NEVER.");
+                return;
+            }
+
             Object primitiveConstant = getPrimitiveConstant();
             if (primitiveConstant != null) {
                 builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.PRIMITIVE_CONSTANT);
